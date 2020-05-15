@@ -36,7 +36,7 @@ def fit_model(train_ds,
 
 if __name__ == "__main__":
     script_path = Path(__file__).resolve()
-    os.chdir(script_path.parent.parent.parent)  # change to the project root
+    os.chdir(script_path.parent)  # change to the project root
 
     args = utils.parse_for_runtime_arguments()
     level = args.level
