@@ -7,6 +7,10 @@ Created on Wed Jan 20 14:09:32 2016
 Evaluation code for the Camelyon16 challenge on cancer metastases detecion
 """
 
+"""
+The FROC curves calculating functions are borrowed from the original Challenge website
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -220,27 +224,6 @@ def computeFROC(meta_info, dataset_name, model_name, overwrite):
     }).to_json(result_path)
 
     return total_FPs, total_sensitivity
-   
-   
-def plotFROC(total_FPs, total_sensitivity):
-    """Plots the FROC curve
-    
-    Args:
-        total_FPs:      A list containing the average number of false positives
-        per image for different thresholds
-        
-        total_sensitivity:  A list containig overall sensitivity of the system
-        for different thresholds
-         
-    Returns:
-        -
-    """    
-    fig = plt.figure()
-    plt.xlabel('Average Number of False Positives', fontsize=12)
-    plt.ylabel('Metastasis detection sensitivity', fontsize=12)  
-    fig.suptitle('Free response receiver operating characteristic curve', fontsize=12)
-    plt.plot(total_FPs, total_sensitivity, '-', color='#000000')    
-    plt.show()
 
   
             
