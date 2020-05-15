@@ -1,12 +1,21 @@
 import numpy as np
 import scipy.stats.stats as st
-from skimage.measure import label
-from skimage.measure import regionprops
+from skimage.measure import label, regionprops
 from collections import namedtuple
+from pathlib import Path
+from tqdm import tqdm
+from PIL import Image
+import pandas as pd
+
+
 FILTER_DIM = 2
 N_FEATURES = 31
 feature_tuple = namedtuple("feature_tuple", "MAX, MEAN, VARIANCE, SKEWNESS, KURTOSIS")
 
+"""
+The feature extraction functions are borrowed from existing codes from
+ https://github.com/arjunvekariyagithub/camelyon16-grand-challenge/blob/master/camelyon16/postprocess/extract_feature_heatmap.py
+"""
 
 def format_2f(number):
     return float(f"{number:.2f}")
@@ -142,3 +151,30 @@ def extract_features(heatmap_prob, tissue_array):
     features += f_solidity
 
     return features
+
+
+def save_features_as_csv(slide_names,
+                         tumor_flags,
+                         dataset_name,
+                         model_name):
+
+    feature_list = [{"slide_name": slide_name} for slide_name in slide_names]
+    result_root = Path(f"./results/{model_name}/{dataset_name}")
+    for slide_id, slide_name in tqdm(enumerate(slide_names), total=len(slide_names)):
+        thumbnail_path = Path(f"./results/thumbnails/{slide_name}.thumbnail.npy")
+        tissue_mask = np.load(thumbnail_path)
+        heatmap_path = result_root / f"{slide_name}/heatmap_grey.bmp"
+        heatmap_grey = Image.open(heatmap_path)
+        features = extract_features(np.array(heatmap_grey)[..., np.newaxis], tissue_mask[..., np.newaxis])
+        features = {f"f{idx+1}": f for idx, f in enumerate(features)}
+        feature_list[slide_id].update(features)
+
+    feature_df = pd.DataFrame(feature_list).sort_values("slide_name")
+    feature_df["label"] = tumor_flags
+    feature_df.to_csv(result_root / f"../{dataset_name}_features.csv")
+    return feature_df
+
+
+
+
+

@@ -17,7 +17,7 @@ def get_checkpoint_callback(path,
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=path,
                                                              monitor=metric,
-                                                             save_best_only=True)
+                                                             save_best_only=False)
 
     return checkpoint_callback
 

@@ -18,21 +18,27 @@ def get_slide_and_mask_paths(data_dir):
     return slide_paths, mask_paths
 
 
-def read_region_from_slide(slide, x, y, level, width, height, as_float=False, verbose=False):
-    # x,y are relative to the current input level
-    factor = 2 ** level
-    im = slide.read_region((x * factor, y * factor), level, (width, height))
+def read_region_from_slide(slide, x, y, level, width, height,
+                           relative_coordinate=True):
+    if relative_coordinate:
+        # x,y are relative to the current output level
+        # i.e., the top left pixel in the level ${level} reference frame.
+        factor = 2 ** level
+        offset_x, offset_y = x * factor, y * factor
+    else:
+        # the top left pixel in the level 0 reference frame.
+        offset_x, offset_y = x, y
+
+    im = slide.read_region((offset_x, offset_y), level, (width, height))
     im = im.convert('RGB') # drop the alpha channel
-    assert im.size == (width, height)
     return im
 
 
-def read_full_slide_by_level(slide_path, level, verbose=False):
+def read_full_slide_by_level(slide_path, level):
     slide = open_slide(str(slide_path))
     return read_region_from_slide(slide, x=0, y=0, level=level,
                                   width=slide.level_dimensions[level][0],
-                                  height=slide.level_dimensions[level][1],
-                                  verbose=verbose)
+                                  height=slide.level_dimensions[level][1])
 
 
 def get_slides_meta_info(data_dir, output_path=None):
@@ -69,9 +75,10 @@ def get_slides_meta_info(data_dir, output_path=None):
     return meta_info
 
 
-def get_connected_regions_from_tumor_slides(mask_path, verbose=False):
-    mask = read_full_slide_by_level(mask_path, level=5)
+def get_connected_regions_from_tumor_slides(mask_path, verbose=False, mask_level=5):
+    mask = read_full_slide_by_level(mask_path, level=mask_level)
     mask = np.array(mask.getchannel(0))
+    mask = mask.T # transpose to be consistent with the shape of slide
     labeled_mask = measure.label(mask, connectivity=2)
     bbox_list = []
     for region in measure.regionprops(labeled_mask):
@@ -93,5 +100,4 @@ def get_connected_regions_from_tumor_slides(mask_path, verbose=False):
         plt.show()
 
     return bbox_list
-
 

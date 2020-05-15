@@ -144,6 +144,10 @@ logs/
 logs
 checkpoints/
 checkpoints
+results/
+results
+models/
+models
 
 .vscode/
 .idea/

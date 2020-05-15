@@ -1,4 +1,4 @@
-from . import dataset
+from camelyon16.preprocessing import dataset
 import tensorflow as tf
 from datetime import datetime
 import pandas as pd
@@ -8,10 +8,12 @@ import argparse
 TIMESTAMP_FORMAT = "%b-%d-%Y-%H:%M:%S"
 
 
-def construct_paths_using_timestamp(model_params):
+def construct_paths_using_timestamp(model_params:dict):
     ts = datetime.now().strftime(TIMESTAMP_FORMAT)
+    model_type = model_params.get("model_type", "single")
+    model_params.pop("model_type", None)
     hyper_str = "_".join([f"{k}-{model_params[k]}" for k in model_params])
-    model_spec = f"single_res/{hyper_str}/{ts}"
+    model_spec = f"{model_type}_res/{hyper_str}/{ts}"
     log_path = f"./logs/{model_spec}"
     checkpoint_path = f"./checkpoints/{model_spec}/"
     checkpoint_path += "epoch-{epoch:02d}-val_acc-{val_sparse_categorical_accuracy:.2f}.hdf5"
@@ -28,12 +30,29 @@ def config_gpu_memory(memory_limit):
 
 def construct_datasets(train_patches_info_path,
                        val_patches_info_path,
-                       mini_batch_counts=-1):
+                       train_low_res_patches_info_path=None,
+                       val_low_res_patches_info_path=None,
+                       batch_size=32,
+                       mini_batch_counts=-1,
+                       strategy="pos_only"):
+
     train_patches_info = pd.read_csv(train_patches_info_path)
-    train_ds = dataset.get_dataset(train_patches_info, is_training=True)
+    train_low_res_patches_info = pd.read_csv(train_low_res_patches_info_path) \
+        if train_low_res_patches_info_path is not None else None
+    train_ds = dataset.get_dataset(label_df=train_patches_info,
+                                   is_training=True,
+                                   low_res_label_df=train_low_res_patches_info,
+                                   sampling_strategy=strategy,
+                                   batch_size=batch_size)
 
     val_patches_info = pd.read_csv(val_patches_info_path)
-    val_ds = dataset.get_dataset(val_patches_info, is_training=False)
+    val_low_res_patches_info = pd.read_csv(val_low_res_patches_info_path) \
+        if val_low_res_patches_info_path is not None else None
+    val_ds = dataset.get_dataset(label_df=val_patches_info,
+                                 is_training=False,
+                                 low_res_label_df=val_low_res_patches_info,
+                                 sampling_strategy=strategy,
+                                 batch_size=batch_size)
 
     assert mini_batch_counts == -1 or mini_batch_counts > 0, \
         "mini_batch_counts must be -1 or a positive number."
@@ -48,9 +67,22 @@ def construct_datasets(train_patches_info_path,
 
 def parse_for_runtime_arguments():
     parser = argparse.ArgumentParser(description='Process runtime arguments.')
-    parser.add_argument('--level', default=1, type=int, help='zoom level of WSI slides')
-    parser.add_argument('--lr', default=0.002, type=float, help='initial learning rate')
-    parser.add_argument('--freeze', default=False, type=bool, help='freeze pretrained conv layers or not')
+    parser.add_argument('--level', default=1, type=int,
+                        help='base level of WSI slides')
+    parser.add_argument('--zoom_level', default=1, type=int,
+                        help='auxiliary zoom-in level of WSI slides')
+    parser.add_argument('--use_neighbor', action='store_true',
+
+                        help='whether to use neighboring patches surrounding tumors only or not')
+    parser.add_argument('--model_type', default="single", type=str,
+                        choices=["single", "multi"],
+                        help='whether to use multi-resolution ensemble model')
+    parser.add_argument('--lr', default=0.002, type=float,
+                        help='initial learning rate')
+    parser.add_argument('--freeze', action="store_true",
+                        help='freeze pretrained conv layers or not')
+    parser.add_argument('--gpu_memory', default=4096, type=int,
+                        help='graphical memory reserved for the model')
 
     args = parser.parse_args()
     return args
