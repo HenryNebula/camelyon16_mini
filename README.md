@@ -64,6 +64,7 @@ And the whole Camelyon16 challenge dataset can be found [here](https://camelyon1
     ├── README.md
     ├── results
     ├── test
+    ├── video.txt
     └── visualization.ipynb
     ```
     where raw slides images are saved under `data/training/samples` or `data/validation/samples`.
@@ -87,5 +88,5 @@ And the whole Camelyon16 challenge dataset can be found [here](https://camelyon1
      python evaluate_model.py --zoom_level=2
     ``` 
      
-Note that all package dependencies are specified in the [requirements](camelyon16/requirements.txt) file. The code was developed using Ubuntu 16.04 LTS, and the code 
-is not guaranteed to work under other operating systems.
+    Note that all package dependencies are specified in the [requirements](camelyon16/requirements.txt) file. The code was developed using Ubuntu 16.04 LTS, and the code 
+    is not guaranteed to work under other operating systems.
